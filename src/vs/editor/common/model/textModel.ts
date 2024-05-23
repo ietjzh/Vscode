@@ -18,7 +18,6 @@ import { URI } from 'vs/base/common/uri';
 import { ISingleEditOperation } from 'vs/editor/common/core/editOperation';
 import { countEOL } from 'vs/editor/common/core/eolCounter';
 import { normalizeIndentation } from 'vs/editor/common/core/indentation';
-import { LineRange } from 'vs/editor/common/core/lineRange';
 import { IPosition, Position } from 'vs/editor/common/core/position';
 import { IRange, Range } from 'vs/editor/common/core/range';
 import { Selection } from 'vs/editor/common/core/selection';
@@ -39,11 +38,15 @@ import { PieceTreeTextBuffer } from 'vs/editor/common/model/pieceTreeTextBuffer/
 import { PieceTreeTextBufferBuilder } from 'vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder';
 import { SearchParams, TextModelSearch } from 'vs/editor/common/model/textModelSearch';
 import { TokenizationTextModelPart } from 'vs/editor/common/model/tokenizationTextModelPart';
+import { AttachedViews } from 'vs/editor/common/model/tokens';
+import { ITreeSitterTokenizationService } from 'vs/editor/common/services/treeSitterTokenizationFeature';
 import { IBracketPairsTextModelPart } from 'vs/editor/common/textModelBracketPairs';
 import { IModelContentChangedEvent, IModelDecorationsChangedEvent, IModelOptionsChangedEvent, InternalModelContentChangeEvent, LineInjectedText, ModelInjectedTextChangedEvent, ModelRawChange, ModelRawContentChangedEvent, ModelRawEOLChanged, ModelRawFlush, ModelRawLineChanged, ModelRawLinesDeleted, ModelRawLinesInserted } from 'vs/editor/common/textModelEvents';
 import { IGuidesTextModelPart } from 'vs/editor/common/textModelGuides';
 import { ITokenizationTextModelPart } from 'vs/editor/common/tokenizationTextModelPart';
-import { IColorTheme } from 'vs/platform/theme/common/themeService';
+import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
+import { IFileService } from 'vs/platform/files/common/files';
+import { IColorTheme, IThemeService } from 'vs/platform/theme/common/themeService';
 import { IUndoRedoService, ResourceEditStackSnapshot, UndoRedoGroup } from 'vs/platform/undoRedo/common/undoRedo';
 
 export function createTextBufferFactory(text: string): model.ITextBufferFactory {
@@ -299,6 +302,10 @@ export class TextModel extends Disposable implements model.ITextModel, IDecorati
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService,
 		@ILanguageService private readonly _languageService: ILanguageService,
 		@ILanguageConfigurationService private readonly _languageConfigurationService: ILanguageConfigurationService,
+		@IConfigurationService configurationService: IConfigurationService,
+		@IFileService fileService: IFileService,
+		@IThemeService themeService: IThemeService,
+		@ITreeSitterTokenizationService treeSitterService: ITreeSitterTokenizationService,
 	) {
 		super();
 
@@ -334,6 +341,10 @@ export class TextModel extends Disposable implements model.ITextModel, IDecorati
 			this._bracketPairs,
 			languageId,
 			this._attachedViews,
+			configurationService,
+			fileService,
+			themeService,
+			treeSitterService
 		);
 
 		const bufferLineCount = this._buffer.getLineCount();
@@ -2524,42 +2535,4 @@ class DidChangeContentEmitter extends Disposable {
 	}
 }
 
-/**
- * @internal
- */
-export class AttachedViews {
-	private readonly _onDidChangeVisibleRanges = new Emitter<{ view: model.IAttachedView; state: IAttachedViewState | undefined }>();
-	public readonly onDidChangeVisibleRanges = this._onDidChangeVisibleRanges.event;
 
-	private readonly _views = new Set<AttachedViewImpl>();
-
-	public attachView(): model.IAttachedView {
-		const view = new AttachedViewImpl((state) => {
-			this._onDidChangeVisibleRanges.fire({ view, state });
-		});
-		this._views.add(view);
-		return view;
-	}
-
-	public detachView(view: model.IAttachedView): void {
-		this._views.delete(view as AttachedViewImpl);
-		this._onDidChangeVisibleRanges.fire({ view, state: undefined });
-	}
-}
-
-/**
- * @internal
- */
-export interface IAttachedViewState {
-	readonly visibleLineRanges: readonly LineRange[];
-	readonly stabilized: boolean;
-}
-
-class AttachedViewImpl implements model.IAttachedView {
-	constructor(private readonly handleStateChange: (state: IAttachedViewState) => void) { }
-
-	setVisibleLines(visibleLines: { startLineNumber: number; endLineNumber: number }[], stabilized: boolean): void {
-		const visibleLineRanges = visibleLines.map((line) => new LineRange(line.startLineNumber, line.endLineNumber + 1));
-		this.handleStateChange({ visibleLineRanges, stabilized });
-	}
-}

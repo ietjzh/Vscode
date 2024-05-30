@@ -54,6 +54,7 @@ export interface ISCMResourceGroup {
 	readonly onDidChangeResources: Event<void>;
 
 	readonly label: string;
+	contextValue: string | undefined;
 	readonly hideWhenEmpty: boolean;
 	readonly onDidChange: Event<void>;
 

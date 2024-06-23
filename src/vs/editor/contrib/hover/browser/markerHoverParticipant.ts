@@ -7,12 +7,14 @@ import * as dom from 'vs/base/browser/dom';
 import { isNonEmptyArray } from 'vs/base/common/arrays';
 import { CancelablePromise, createCancelablePromise, disposableTimeout } from 'vs/base/common/async';
 import { onUnexpectedError } from 'vs/base/common/errors';
+import { isMarkdownString } from 'vs/base/common/htmlContent';
 import { Disposable, DisposableStore, IDisposable, toDisposable } from 'vs/base/common/lifecycle';
 import { basename } from 'vs/base/common/resources';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 import { EditorOption } from 'vs/editor/common/config/editorOptions';
 import { Range } from 'vs/editor/common/core/range';
 import { CodeActionTriggerType } from 'vs/editor/common/languages';
+import { ILanguageService } from 'vs/editor/common/languages/language';
 import { IModelDecoration } from 'vs/editor/common/model';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
 import { IMarkerDecorationsService } from 'vs/editor/common/services/markerDecorations';
@@ -21,6 +23,7 @@ import { CodeActionController } from 'vs/editor/contrib/codeAction/browser/codeA
 import { CodeActionKind, CodeActionSet, CodeActionTrigger, CodeActionTriggerSource } from 'vs/editor/contrib/codeAction/common/types';
 import { MarkerController, NextMarkerAction } from 'vs/editor/contrib/gotoError/browser/gotoError';
 import { HoverAnchor, HoverAnchorType, IEditorHoverParticipant, IEditorHoverRenderContext, IHoverPart } from 'vs/editor/contrib/hover/browser/hoverTypes';
+import { renderMarkdownInContainer } from 'vs/editor/contrib/hover/browser/markdownHoverParticipant';
 import * as nls from 'vs/nls';
 import { ITextEditorOptions } from 'vs/platform/editor/common/editor';
 import { IMarker, IMarkerData, MarkerSeverity } from 'vs/platform/markers/common/markers';
@@ -62,6 +65,7 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 		private readonly _editor: ICodeEditor,
 		@IMarkerDecorationsService private readonly _markerDecorationsService: IMarkerDecorationsService,
 		@IOpenerService private readonly _openerService: IOpenerService,
+		@ILanguageService private readonly _languageService: ILanguageService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 	) { }
 
@@ -95,13 +99,13 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 			return Disposable.None;
 		}
 		const disposables = new DisposableStore();
-		hoverParts.forEach(msg => context.fragment.appendChild(this.renderMarkerHover(msg, disposables)));
+		hoverParts.forEach(msg => context.fragment.appendChild(this.renderMarkerHover(msg, context, disposables)));
 		const markerHoverForStatusbar = hoverParts.length === 1 ? hoverParts[0] : hoverParts.sort((a, b) => MarkerSeverity.compare(a.marker.severity, b.marker.severity))[0];
 		this.renderMarkerStatusbar(context, markerHoverForStatusbar, disposables);
 		return disposables;
 	}
 
-	private renderMarkerHover(markerHover: MarkerHover, disposables: DisposableStore): HTMLElement {
+	private renderMarkerHover(markerHover: MarkerHover, context: IEditorHoverRenderContext, disposables: DisposableStore): HTMLElement {
 		const hoverElement = $('div.hover-row');
 		hoverElement.tabIndex = 0;
 		const markerElement = dom.append(hoverElement, $('div.marker.hover-contents'));
@@ -110,7 +114,11 @@ export class MarkerHoverParticipant implements IEditorHoverParticipant<MarkerHov
 		this._editor.applyFontInfo(markerElement);
 		const messageElement = dom.append(markerElement, $('span'));
 		messageElement.style.whiteSpace = 'pre-wrap';
-		messageElement.innerText = message;
+		if (isMarkdownString(message)) {
+			disposables.add(renderMarkdownInContainer(this._editor, messageElement, [message], this._languageService, this._openerService, context.onContentsChanged));
+		} else {
+			messageElement.innerText = message;
+		}
 
 		if (source || code) {
 			// Code has link

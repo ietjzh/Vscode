@@ -1,7 +1,7 @@
 {
   "name": "code-oss-dev",
   "version": "1.91.0",
-  "distro": "9cef7f933867933892cb3b591231ed071fe861a8",
+  "distro": "03b9327c8b403ebdafc5cc27013e0a1eced03399",
   "author": {
     "name": "Microsoft Corporation"
   },
@@ -93,7 +93,7 @@
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "jschardet": "3.1.2",
-    "kerberos": "^2.0.1",
+    "kerberos": "github:mongodb-js/kerberos#2e7105806967c5b34190af1fff1e026c7dcc34ac",
     "minimist": "^1.2.6",
     "native-is-elevated": "0.7.0",
     "native-keymap": "^3.3.5",
@@ -148,7 +148,7 @@
     "cssnano": "^6.0.3",
     "debounce": "^1.0.0",
     "deemon": "^1.8.0",
-    "electron": "30.0.9",
+    "electron": "31.0.1",
     "eslint": "8.36.0",
     "eslint-plugin-header": "3.1.1",
     "eslint-plugin-jsdoc": "^46.5.0",

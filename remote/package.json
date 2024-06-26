@@ -26,7 +26,7 @@
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "jschardet": "3.1.2",
-    "kerberos": "^2.0.1",
+    "kerberos": "github:mongodb-js/kerberos#2e7105806967c5b34190af1fff1e026c7dcc34ac",
     "minimist": "^1.2.6",
     "native-watchdog": "^1.4.1",
     "node-pty": "1.1.0-beta11",

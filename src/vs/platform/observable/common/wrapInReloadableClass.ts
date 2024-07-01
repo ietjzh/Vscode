@@ -2,11 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-
 import { isHotReloadEnabled } from 'vs/base/common/hotReload';
+import { readHotReloadableExport } from 'vs/base/common/hotReloadHelpers';
 import { IDisposable } from 'vs/base/common/lifecycle';
 import { autorunWithStore } from 'vs/base/common/observable';
-import { readHotReloadableExport } from 'vs/editor/browser/widget/diffEditor/utils';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 
 /**
@@ -15,6 +14,11 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
  * When the original class changes, the instance is re-created.
 */
 export function wrapInReloadableClass(getClass: () => (new (...args: any[]) => any)): (new (...args: any[]) => any) {
+	// Disables this function as it does not work.
+	if (1 === 1) {
+		// TODO@hediet fix this asap.
+		return getClass();
+	}
 	if (!isHotReloadEnabled()) {
 		return getClass();
 	}
@@ -34,10 +38,9 @@ export function wrapInReloadableClass(getClass: () => (new (...args: any[]) => a
 		}
 	};
 }
-
 class BaseClass {
 	constructor(
-		@IInstantiationService protected readonly instantiationService: IInstantiationService,
+		@IInstantiationService protected readonly instantiationService: IInstantiationService
 	) {
 		this.init();
 	}
